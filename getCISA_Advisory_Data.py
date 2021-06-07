@@ -4,7 +4,7 @@ import datetime
 from bs4 import BeautifulSoup as bs
 
 errorfile=open('ERROR_FILE_ADVISORY_DATA_RETREIVAL'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.txt','a')
-inFile=''
+inFile=r"C:\\Users\\jeffd\\OneDrive\\Documents\\VSCode Projects\\CISA_Scraper\\infile.csv"
 outFile=open('CISA_Advisory_Data_'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.csv','a')
 
 with open(inFile) as f:
@@ -18,6 +18,7 @@ with open(inFile) as f:
         cwe_list=[]
         cve_string=''
         cwe_string=''
+        affected_products=''
 
         try:
             cvss_score=soup.find(lambda tag:tag.name=="li" and "CVSS v3" in tag.text)
@@ -33,15 +34,21 @@ with open(inFile) as f:
             vendor=vendor.replace('Vendor: ', '')
 
             #retrieve list of affected products
-            affected_products=soup.find(lambda tag:tag.name=='h3' and 'AFFECTED PRODUCTS' in tag.text)
-            affected_products=affected_products.text
+            try:
+                affected_products=soup.find(lambda tag:tag.name=='h3' and 'AFFECTED PRODUCTS' in tag.text).nextSibling.next.next
 
+                vulnerability_overview=soup.find(lambda tag:tag.name=='h3' and 'VULNERABILITY OVERVIEW' in tag.text)
+            
+
+                print(affected_products)
+            except:
+                print("Error locating affected products", file=errorfile)
             #Find all CVE and CWE links on page
             for a in soup.find_all('a',href=True):
                 try:
                     if(a['href'].__contains__('http://web.nvd.nist.gov/view/vuln/detail?vulId=')):
                         cve_list.append(a['href'])
-                    elif(a['href'].__contains__('http://web.nvd.nist.gov/view/vuln/detail?vulId=')):
+                    elif(a['href'].__contains__('https://cwe.mitre.org/data/definitions/')):
                         cwe_list.append(a['href'])
                 except:
                     print('error getting CVE or CWE from the following URL: '+line[0], file=errorfile)
@@ -54,4 +61,6 @@ with open(inFile) as f:
         for x in cwe_list:
             cwe_string=cwe_string+x+';'
 
-        print(advisory_data=cvss +','+equipment+','+vendor+','+affected_products+','+cve_string+','+cwe_string+',', file=outFile)
+        advisory_data=cvss +','+equipment+','+vendor+','+affected_products+','+cve_string+','+cwe_string+','
+
+        print(advisory_data, file=outFile)
