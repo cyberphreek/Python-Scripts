@@ -2,6 +2,7 @@ import requests
 import csv
 import datetime
 from bs4 import BeautifulSoup as bs
+from bs4 import NavigableString, Tag
 
 errorfile=open('ERROR_FILE_ADVISORY_DATA_RETREIVAL'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.txt','a')
 inFile=r"C:\\Users\\jeffd\\OneDrive\\Documents\\VSCode Projects\\CISA_Scraper\\infile.csv"
@@ -18,7 +19,8 @@ with open(inFile) as f:
         cwe_list=[]
         cve_string=''
         cwe_string=''
-        affected_products=''
+        affected_products=[]
+        affected_products_string=''
 
         try:
             cvss_score=soup.find(lambda tag:tag.name=="li" and "CVSS v3" in tag.text)
@@ -35,23 +37,27 @@ with open(inFile) as f:
 
             #retrieve list of affected products
             try:
-                affected_products=soup.find(lambda tag:tag.name=='h3' and 'AFFECTED PRODUCTS' in tag.text).nextSibling.next.next
-
-                vulnerability_overview=soup.find(lambda tag:tag.name=='h3' and 'VULNERABILITY OVERVIEW' in tag.text)
+                startTag=soup.find(lambda tag:tag.name=='h3' and 'AFFECTED PRODUCTS' in tag.text)
+                endTag=soup.find(lambda tag:tag.name=='h3' and 'VULNERABILITY OVERVIEW' in tag.text)
+                #needs to be further simplified. Returns too much data still. Only need afffected product list, probably filter on 'li' tag somehow
+                while startTag.next.__contains__(r'VULNERABILITY OVERVIEW')==False:
+                        startTag=startTag.next_element
+                        affected_products.append(startTag)
             
-
-                print(affected_products)
             except:
                 print("Error locating affected products", file=errorfile)
             #Find all CVE and CWE links on page
-            for a in soup.find_all('a',href=True):
+            for a in soup.find_all('a', href=True):
                 try:
-                    if(a['href'].__contains__('http://web.nvd.nist.gov/view/vuln/detail?vulId=')):
+                    if(a['href'].__contains__(r'web.nvd.nist.gov/view/vuln/detail')):
                         cve_list.append(a['href'])
-                    elif(a['href'].__contains__('https://cwe.mitre.org/data/definitions/')):
+                except:
+                    print('error getting CVE List from the following URL: '+ a,file=errorfile)
+                try:
+                    if(a['href'].__contains__(r'cwe.mitre.org/data/definitions/')):
                         cwe_list.append(a['href'])
                 except:
-                    print('error getting CVE or CWE from the following URL: '+line[0], file=errorfile)
+                    print('error getting CWE from the following URL: '+a, file=errorfile)
         except:
             print('error parsing the following URL for advisory data: '+line[0], file=errorfile)
 
@@ -61,6 +67,9 @@ with open(inFile) as f:
         for x in cwe_list:
             cwe_string=cwe_string+x+';'
 
-        advisory_data=cvss +','+equipment+','+vendor+','+affected_products+','+cve_string+','+cwe_string+','
+        for x in affected_products:
+            affected_products_string=affected_products_string+x+';'
+
+        advisory_data=cvss +','+equipment+','+vendor+','+affected_products_string+','+cve_string+','+cwe_string+','
 
         print(advisory_data, file=outFile)
