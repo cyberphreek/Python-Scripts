@@ -1,12 +1,17 @@
 import requests
 import csv
 import datetime
+import re
 from bs4 import BeautifulSoup as bs
-from bs4 import NavigableString, Tag
 
 errorfile=open('ERROR_FILE_ADVISORY_DATA_RETREIVAL'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.txt','a')
 inFile=r"C:\\Users\\jeffd\\OneDrive\\Documents\\VSCode Projects\\CISA_Scraper\\infile.csv"
 outFile=open('CISA_Advisory_Data_'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.csv','a')
+
+def cleanhtml(raw_html):
+  cleanr = re.compile('<.*?>')
+  cleantext = re.sub(cleanr, '', raw_html)
+  return cleantext
 
 with open(inFile) as f:
     reader=csv.reader(f)
@@ -39,11 +44,13 @@ with open(inFile) as f:
             try:
                 startTag=soup.find(lambda tag:tag.name=='h3' and 'AFFECTED PRODUCTS' in tag.text)
                 endTag=soup.find(lambda tag:tag.name=='h3' and 'VULNERABILITY OVERVIEW' in tag.text)
-                #needs to be further simplified. Returns too much data still. Only need afffected product list, probably filter on 'li' tag somehow
                 while startTag.next.__contains__(r'VULNERABILITY OVERVIEW')==False:
                         startTag=startTag.next_element
-                        affected_products.append(startTag)
-            
+                        try:
+                            if startTag.name=='li':
+                                affected_products.append(cleanhtml(str(startTag)))
+                        except:
+                            print('')
             except:
                 print("Error locating affected products", file=errorfile)
             #Find all CVE and CWE links on page
