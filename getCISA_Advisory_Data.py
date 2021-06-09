@@ -5,7 +5,7 @@ import re
 from bs4 import BeautifulSoup as bs
 
 errorfile=open('ERROR_FILE_ADVISORY_DATA_RETREIVAL'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.txt','a')
-inFile=r"C:\\Users\\jeffd\\OneDrive\\Documents\\VSCode Projects\\CISA_Scraper\\infile.csv"
+inFile=r""
 outFile=open('CISA_Advisory_Data_'+datetime.datetime.now().strftime('%Y%m%d%H%M%S%f')+'.csv','a')
 
 def cleanhtml(raw_html):
